@@ -6,6 +6,7 @@ const os = require("os")
 
 let mainWindow
 let serverProcess
+let serverIP
 
 // Prevent multiple instances
 const gotLock = app.requestSingleInstanceLock()
@@ -30,8 +31,10 @@ function getLocalIP() {
 }
 
 // Wait until server responds
-function waitForServer(url, retries = 30) {
+function waitForServer(url, maxRetries = 30) {
   return new Promise((resolve, reject) => {
+    let remaining = maxRetries
+
     const check = () => {
       http
         .get(url, () => {
@@ -39,15 +42,16 @@ function waitForServer(url, retries = 30) {
           resolve()
         })
         .on("error", () => {
-          if (retries > 0) {
+          if (remaining > 0) {
             console.log("⏳ Waiting for server...")
-            retries--
+            remaining--
             setTimeout(check, 1000)
           } else {
             reject(new Error("Server failed to start"))
           }
         })
     }
+
     check()
   })
 }
@@ -69,13 +73,22 @@ function startServer() {
 
     console.log("🚀 Starting server from:", serverPath)
 
-    serverProcess = spawn("node", [serverPath], {
+    // IMPORTANT FIX (no system node dependency)
+    const nodeExecutable = isDev ? "node" : process.execPath
+
+    const spawnEnv = {
+      ...process.env,
+      HOST: "0.0.0.0",
+      PORT: "3000",
+    }
+
+    if (!isDev) {
+      spawnEnv.ELECTRON_RUN_AS_NODE = "1"
+    }
+
+    serverProcess = spawn(nodeExecutable, [serverPath], {
       windowsHide: true,
-      env: {
-        ...process.env,
-        HOST: "0.0.0.0",
-        PORT: "3000",
-      },
+      env: spawnEnv,
     })
 
     serverProcess.stdout?.on("data", (data) => {
@@ -88,9 +101,13 @@ function startServer() {
 
     serverProcess.on("error", reject)
 
-    const ip = getLocalIP()
-    waitForServer(`http://${ip}:3000`)
-      .then(resolve)
+    // ✅ Use localhost for reliability
+    waitForServer("http://127.0.0.1:3000")
+      .then(() => {
+        // Store LAN IP once
+        serverIP = getLocalIP()
+        resolve()
+      })
       .catch(reject)
   })
 }
@@ -99,8 +116,7 @@ function startServer() {
 function createWindow() {
   if (mainWindow) return
 
-  const ip = getLocalIP()
-  const url = `http://${ip}:3000`
+  const url = `http://${serverIP}:3000`
 
   console.log("🌍 Loading:", url)
 
@@ -128,6 +144,7 @@ app.whenReady().then(async () => {
     createWindow()
   } catch (err) {
     console.error("❌ Failed to start app:", err)
+    app.quit()
   }
 })
 

@@ -11,7 +11,7 @@
 		"build": "vite build",
 		"electron": "npx electron .",
 		"electron-dev": "concurrently \"vite\" \"wait-on http://localhost:3000 && cross-env VITE_DEV_SERVER_URL=http://localhost:3000 electron .\"",
-		"dist": "electron-builder",
+		"dist": "npm run build && electron-builder",
 		"preview": "vite preview",
 		"test": "vitest run",
 		"check": "biome check .",
@@ -64,29 +64,35 @@
 		"wait-on": "^9.0.4"
 	},
 	"build": {
-		"appId": "com.rein.app",
-		"productName": "Rein",
-		"asarUnpack": [
-			".output/**/*"
-		],
-		"extraResources": [
-			{
-				"from": ".output",
-				"to": ".output"
-			}
-		],
-		"files": [
-			".output/**/*",
-			"electron/**/*",
-			"package.json"
-		],
-		"win": {
-			"target": "nsis"
-		},
-		"nsis": {
-			"oneClick": false,
-			"allowToChangeInstallationDirectory": true,
-			"createDesktopShortcut": true
+	"appId": "com.rein.app",
+	"productName": "Rein",
+
+	"asar": true,
+	"asarUnpack": [
+		".output/**/*"
+	],
+
+	"files": [
+		".output/**/*",
+		"electron/**/*",
+		"package.json"
+	],
+
+	"extraResources": [
+		{
+		"from": ".output",
+		"to": ".output"
 		}
+	],
+
+	"win": {
+		"target": "nsis"
+	},
+
+	"nsis": {
+		"oneClick": false,
+		"allowToChangeInstallationDirectory": true,
+		"createDesktopShortcut": true
+	}
 	}
 }

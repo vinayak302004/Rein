@@ -1,88 +1,138 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-const { spawn } = require('child_process');
-const http = require('http');
+const { app, BrowserWindow } = require("electron")
+const path = require("path")
+const { spawn } = require("child_process")
+const http = require("http")
+const os = require("os")
 
-let mainWindow;
-let serverProcess;
+let mainWindow
+let serverProcess
 
 // Prevent multiple instances
-const gotLock = app.requestSingleInstanceLock();
+const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
-  app.quit();
-  process.exit(0);
+  app.quit()
+  process.exit(0)
 }
 
-// Wait until server is ready
-function waitForServer(url) {
-  return new Promise((resolve) => {
+// Get actual local IPv4 address
+function getLocalIP() {
+  const interfaces = os.networkInterfaces()
+
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name]) {
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address
+      }
+    }
+  }
+
+  return "127.0.0.1"
+}
+
+// Wait until server responds
+function waitForServer(url, retries = 30) {
+  return new Promise((resolve, reject) => {
     const check = () => {
       http
-        .get(url, () => resolve())
-        .on('error', () => setTimeout(check, 500));
-    };
-    check();
-  });
+        .get(url, () => {
+          console.log("✅ Server ready")
+          resolve()
+        })
+        .on("error", () => {
+          if (retries > 0) {
+            console.log("⏳ Waiting for server...")
+            retries--
+            setTimeout(check, 1000)
+          } else {
+            reject(new Error("Server failed to start"))
+          }
+        })
+    }
+    check()
+  })
 }
 
-// Start Nitro server (production)
+// Start Nitro server
 function startServer() {
-  return new Promise((resolve) => {
-    const serverPath = path.join(
-      process.resourcesPath,
-      'app.asar.unpacked',
-      '.output',
-      'server',
-      'index.mjs'
-    );
+  return new Promise((resolve, reject) => {
+    const isDev = !app.isPackaged
 
-    console.log("Starting server from:", serverPath);
+    const serverPath = isDev
+      ? path.join(__dirname, "../.output/server/index.mjs")
+      : path.join(
+          process.resourcesPath,
+          "app.asar.unpacked",
+          ".output",
+          "server",
+          "index.mjs"
+        )
 
-    serverProcess = spawn('node', [serverPath], {
-      stdio: 'ignore',       // no terminal
-      windowsHide: true,     // hide CMD
+    console.log("🚀 Starting server from:", serverPath)
+
+    serverProcess = spawn("node", [serverPath], {
+      windowsHide: true,
       env: {
         ...process.env,
-        HOST: '127.0.0.1',
-        PORT: '3000',
+        HOST: "0.0.0.0",
+        PORT: "3000",
       },
-    });
+    })
 
-    waitForServer('http://localhost:3000').then(resolve);
-  });
+    serverProcess.stdout?.on("data", (data) => {
+      console.log("SERVER:", data.toString())
+    })
+
+    serverProcess.stderr?.on("data", (data) => {
+      console.error("SERVER ERROR:", data.toString())
+    })
+
+    serverProcess.on("error", reject)
+
+    const ip = getLocalIP()
+    waitForServer(`http://${ip}:3000`)
+      .then(resolve)
+      .catch(reject)
+  })
 }
 
-// Create window
+// Create Electron window
 function createWindow() {
-  if (mainWindow) return;
+  if (mainWindow) return
+
+  const ip = getLocalIP()
+  const url = `http://${ip}:3000`
+
+  console.log("🌍 Loading:", url)
 
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     show: false,
-  });
+  })
 
-  mainWindow.loadURL('http://localhost:3000');
+  mainWindow.loadURL(url)
 
-  // Show when ready
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-  });
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show()
+  })
 
-  // Debug only if needed
-  mainWindow.webContents.on('did-fail-load', (e, code, desc) => {
-    console.log("LOAD FAILED:", code, desc);
-  });
+  mainWindow.webContents.on("did-fail-load", (e, code, desc) => {
+    console.error("LOAD FAILED:", code, desc)
+  })
 }
 
-// App start
+// App startup
 app.whenReady().then(async () => {
-  await startServer();
-  createWindow();
-});
+  try {
+    await startServer()
+    createWindow()
+  } catch (err) {
+    console.error("❌ Failed to start app:", err)
+  }
+})
 
 // Cleanup
-app.on('window-all-closed', () => {
-  if (serverProcess) serverProcess.kill();
-  if (process.platform !== 'darwin') app.quit();
-});
+app.on("window-all-closed", () => {
+  if (serverProcess) serverProcess.kill()
+  if (process.platform !== "darwin") app.quit()
+})

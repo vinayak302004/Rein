@@ -1,7 +1,7 @@
 {
 	"main": "electron/main.cjs",
 	"name": "app",
-	"version": "1.0.0",
+	"version" : "1.0.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -50,7 +50,6 @@
 		"@vitejs/plugin-react": "^5.0.4",
 		"autoprefixer": "^10.4.23",
 		"concurrently": "^9.2.1",
-		"cross-env": "^10.1.0",
 		"daisyui": "^5.5.14",
 		"electron": "^40.6.1",
 		"electron-builder": "^26.8.1",

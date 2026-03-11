@@ -18,8 +18,6 @@ on:
 
 jobs:
   build-electron:
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       fail-fast: false
       matrix:
@@ -28,18 +26,15 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js 24
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           cache: "npm"
 
-      # 3. Clean node_modules and npm cache (Windows)
       - name: Clean node_modules and npm cache (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -47,36 +42,29 @@ jobs:
           npm cache clean --force
         shell: pwsh
 
-      # 4. Clean node_modules and npm cache (macOS/Linux)
       - name: Clean node_modules and npm cache (macOS/Linux)
         if: runner.os != 'Windows'
         run: |
           rm -rf node_modules package-lock.json || true
           npm cache clean --force
 
-      # 5. Install dependencies (Windows)
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: npm ci --include=optional
 
-      # 6. Install dependencies (macOS/Linux)
       - name: Install dependencies (macOS/Linux)
         if: runner.os != 'Windows'
         run: npm install --include=optional --force
 
-      # 7. Rebuild native dependencies for Electron
       - name: Rebuild native dependencies
         run: npx electron-builder install-app-deps
 
-      # 8. Build frontend
       - name: Build frontend
         run: npm run build
 
-      # 9. Package Electron app
       - name: Package Electron app
         run: npm run dist -- --publish=never
 
-      # 10. Upload Electron artifacts
       - name: Upload Electron Artifacts
         uses: actions/upload-artifact@v4
         with:

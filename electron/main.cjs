@@ -41,20 +41,18 @@ function waitForServer(url) {
 
 // Start Nitro server (production)
 function startServer() {
-  return new Promise((resolve) => {
-    const serverPath = path.join(
-      process.resourcesPath,
-      'app.asar.unpacked',
-      '.output',
-      'server',
-      'index.mjs'
-    );
+  return new Promise((resolve, reject) => {
+    const isDev = !app.isPackaged;
+    const projectRoot = path.resolve(__dirname, '..'); // <-- ensure correct root
+    const serverPath = isDev
+      ? path.join(projectRoot, '.output', 'server', 'index.mjs')
+      : path.join(process.resourcesPath, 'app.asar.unpacked', '.output', 'server', 'index.mjs');
 
     console.log("Starting server from:", serverPath);
 
     serverProcess = spawn('node', [serverPath], {
-      stdio: 'ignore',       // no terminal
-      windowsHide: true,     // hide CMD
+      stdio: 'pipe',
+      windowsHide: true,
       env: {
         ...process.env,
         HOST: serverHost,
@@ -62,7 +60,20 @@ function startServer() {
       },
     });
 
-    waitForServer(`http://localhost:${serverPort}`).then(resolve);
+    serverProcess.stdout.on('data', (data) => console.log('[SERVER]', data.toString()));
+    serverProcess.stderr.on('data', (data) => console.error('[SERVER ERROR]', data.toString()));
+
+    const url = `http://localhost:${serverPort}`;
+    const start = Date.now();
+
+    function check() {
+      http.get(url, () => resolve()).on('error', () => {
+        if (Date.now() - start > 15000) reject(new Error('Server did not start in time'));
+        else setTimeout(check, 500);
+      });
+    }
+
+    check();
   });
 }
 

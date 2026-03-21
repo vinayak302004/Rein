@@ -166,6 +166,7 @@ export async function createWsServer(
 					}
 
 					const msg = JSON.parse(raw)
+					console.log("SERVER RECEIVED:", msg)
 
 					// Throttle token touch to once per second — avoids crypto comparison on every event
 					if (token && msg.type !== "get-ip" && msg.type !== "generate-token") {

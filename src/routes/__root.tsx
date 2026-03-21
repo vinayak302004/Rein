@@ -26,6 +26,9 @@ export const Route = createRootRoute({
 	notFoundComponent: () => <div>Not Found</div>,
 })
 
+/**
+ * ✅ ENSURES ALL CHILDREN HAVE CONNECTION CONTEXT
+ */
 function AppWithConnection() {
 	return (
 		<ConnectionProvider>
@@ -39,21 +42,24 @@ function RootComponent() {
 		<RootDocument>
 			<DesktopCaptureProvider />
 			<Outlet />
-			{/* <TanStackRouterDevtools position="bottom-right" /> */}
 		</RootDocument>
 	)
 }
 
+/**
+ * ✅ SAFE: only runs AFTER provider is mounted
+ */
 function DesktopCaptureProvider() {
 	const { wsRef, status } = useConnection()
 	const { startSharing } = useCaptureProvider(wsRef)
 	const hasStartedRef = useRef(false)
 
 	useEffect(() => {
+		if (typeof window === "undefined") return
 		if (status !== "connected" || hasStartedRef.current) return
 
-		// Mobile detection: avoid auto-start on mobile
 		const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
 		const canShare = !!navigator.mediaDevices?.getDisplayMedia
 
 		if (!isMobile && canShare) {
@@ -68,11 +74,15 @@ function DesktopCaptureProvider() {
 function ThemeInit() {
 	useEffect(() => {
 		if (typeof localStorage === "undefined") return
+
 		const saved = localStorage.getItem(APP_CONFIG.THEME_STORAGE_KEY)
+
 		const theme =
 			saved === THEMES.LIGHT || saved === THEMES.DARK ? saved : THEMES.DEFAULT
+
 		document.documentElement.setAttribute("data-theme", theme)
 	}, [])
+
 	return null
 }
 
@@ -90,18 +100,24 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<link rel="icon" type="image/svg+xml" href="/app_icon/Icon.svg" />
 				<link rel="manifest" href="/manifest.json" />
 			</head>
+
 			<body className="bg-base-200 text-base-content overflow-hidden overscroll-none">
 				<ThemeInit />
+
 				<div className="flex flex-col h-[100dvh]">
 					<Navbar />
 					<main className="flex-1 overflow-hidden relative">{children}</main>
 				</div>
+
 				<Scripts />
 			</body>
 		</html>
 	)
 }
 
+/**
+ * ✅ SAFE: only used inside provider
+ */
 function LatencyBadge() {
 	const { latency } = useConnection()
 	if (latency === null) return null
@@ -115,7 +131,7 @@ function LatencyBadge() {
 
 	return (
 		<div className={`flex items-center gap-1.5 px-2 ${color}`}>
-			<div className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_rgba(0,0,0,0.3)]" />
+			<div className="w-1.5 h-1.5 rounded-full bg-current" />
 			<span className="text-[11px] font-mono font-medium whitespace-nowrap">
 				{latency}ms
 			</span>
@@ -137,8 +153,10 @@ function Navbar() {
 					Rein
 				</Link>
 			</div>
+
 			<div className="flex-none flex items-center gap-2">
 				<LatencyBadge />
+
 				<Link
 					to="/trackpad"
 					className="btn btn-ghost btn-sm"
@@ -146,6 +164,7 @@ function Navbar() {
 				>
 					Trackpad
 				</Link>
+
 				<Link
 					to="/settings"
 					className="btn btn-ghost btn-sm"

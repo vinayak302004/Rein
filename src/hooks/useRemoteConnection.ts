@@ -1,16 +1,17 @@
-"use client"
-
 import { useConnection } from "../contexts/ConnectionProvider"
 
-export const useRemoteConnection = () => {
-	const { wsRef, status, platform, send, subscribe } = useConnection()
+export function useRemoteConnection() {
+	const { send } = useConnection()
 
-	const sendCombo = (msg: string[]) => {
-		send({
-			type: "combo",
-			keys: msg,
-		})
+	const sendMessage = (msg: unknown) => {
+		console.log("Sending to backend:", msg)
+		send(msg) // ✅ ACTUAL WEBSOCKET SEND
 	}
 
-	return { status, platform, send, sendCombo, wsRef, subscribe }
+	return {
+		send,
+		sendCombo: (keys: string[]) => {
+			send({ type: "combo", keys })
+		},
+	}
 }

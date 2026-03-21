@@ -8,6 +8,7 @@ import { TouchArea } from "../components/Trackpad/TouchArea"
 import { useRemoteConnection } from "../hooks/useRemoteConnection"
 import { useTrackpadGesture } from "../hooks/useTrackpadGesture"
 import { ScreenMirror } from "../components/Trackpad/ScreenMirror"
+import "@/webrtc/webrtcManager"
 
 export const Route = createFileRoute("/trackpad")({
 	component: TrackpadPage,

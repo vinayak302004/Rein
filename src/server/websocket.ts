@@ -167,6 +167,12 @@ export async function createWsServer(
 
 					const msg = JSON.parse(raw)
 
+					// 🎮 Remote input forwarded from WebRTC DataChannel
+					if (msg.type === "remote-input") {
+						await inputHandler.handleMessage(msg.payload as InputMessage)
+						return
+					}
+
 					// Throttle token touch to once per second — avoids crypto comparison on every event
 					if (token && msg.type !== "get-ip" && msg.type !== "generate-token") {
 						if (now - lastTokenTouch > 1000) {

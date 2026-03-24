@@ -42,19 +42,33 @@ function waitForServer(url) {
 // Start Nitro server (production)
 function startServer() {
   return new Promise((resolve) => {
-    const serverPath = path.join(
-      process.resourcesPath,
-      'app.asar.unpacked',
-      '.output',
-      'server',
-      'index.mjs'
-    );
+    let serverPath;
+
+    if (app.isPackaged) {
+      // ✅ Production (after build)
+      serverPath = path.join(
+        process.resourcesPath,
+        'app.asar.unpacked',
+        '.output',
+        'server',
+        'index.mjs'
+      );
+    } else {
+      // ✅ Development (npm start)
+      serverPath = path.join(
+        __dirname,
+        '..',
+        '.output',
+        'server',
+        'index.mjs'
+      );
+    }
 
     console.log("Starting server from:", serverPath);
 
     serverProcess = spawn('node', [serverPath], {
-      stdio: 'ignore',       // no terminal
-      windowsHide: true,     // hide CMD
+      stdio: 'ignore',
+      windowsHide: true,
       env: {
         ...process.env,
         HOST: serverHost,

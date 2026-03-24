@@ -13,3 +13,7 @@ count.txt
 todos.json
 tokens.json
 SPEC.md
+dist/
+out/
+out/
+*.log

@@ -17,7 +17,7 @@ try {
 			impl = require("./linux") as FFIImpl
 			break
 		case "darwin":
-			impl = require("./mac") as FFIImpl
+			impl = require("./macos") as FFIImpl
 			break
 		default:
 			throw new Error("Unsupported OS")

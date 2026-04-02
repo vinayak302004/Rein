@@ -1,21 +1,14 @@
-import fs from "node:fs"
-
-const fd = fs.openSync("/dev/uinput", "w")
+import { execFile } from "node:child_process"
 
 export function moveMouse(dx: number, dy: number) {
-	// Simplified PoC (real impl uses input_event struct)
-	const buf = Buffer.alloc(24)
-
-	buf.writeInt32LE(dx, 8)
-	buf.writeInt32LE(dy, 12)
-
-	fs.writeSync(fd, buf)
+	execFile("xdotool", ["mousemove_relative", "--", String(dx), String(dy)])
 }
 
 export function mouseClick() {
-	// stub for PoC
+	execFile("xdotool", ["click", "1"])
 }
 
 export function scroll(delta: number) {
-	// stub for PoC
+	const btn = delta > 0 ? "5" : "4"
+	execFile("xdotool", ["click", btn])
 }

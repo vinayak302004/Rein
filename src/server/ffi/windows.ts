@@ -3,6 +3,7 @@ import koffi from "koffi"
 const user32 = koffi.load("user32.dll")
 
 const INPUT_MOUSE = 0
+
 const MOUSEEVENTF_MOVE = 0x0001
 const MOUSEEVENTF_LEFTDOWN = 0x0002
 const MOUSEEVENTF_LEFTUP = 0x0004
@@ -12,37 +13,34 @@ const SendInput = user32.func(
 	"UINT SendInput(UINT nInputs, void* pInputs, int cbSize)",
 )
 
+function createMouseInput(flags: number, dx = 0, dy = 0, data = 0) {
+	const buffer = Buffer.alloc(40)
+
+	buffer.writeUInt32LE(INPUT_MOUSE, 0) // type
+	buffer.writeInt32LE(dx, 8) // dx
+	buffer.writeInt32LE(dy, 12) // dy
+	buffer.writeUInt32LE(data, 16) // mouseData (wheel)
+	buffer.writeUInt32LE(flags, 20) // flags
+
+	return buffer
+}
+
 export function moveMouse(dx: number, dy: number) {
-	const input = Buffer.alloc(40)
-
-	input.writeUInt32LE(INPUT_MOUSE, 0)
-	input.writeInt32LE(dx, 8)
-	input.writeInt32LE(dy, 12)
-	input.writeUInt32LE(MOUSEEVENTF_MOVE, 16)
-
+	const input = createMouseInput(MOUSEEVENTF_MOVE, dx, dy)
 	SendInput(1, input, 40)
 }
 
 export function mouseClick() {
-	const inputDown = Buffer.alloc(40)
-	const inputUp = Buffer.alloc(40)
+	const down = createMouseInput(MOUSEEVENTF_LEFTDOWN)
+	const up = createMouseInput(MOUSEEVENTF_LEFTUP)
 
-	inputDown.writeUInt32LE(INPUT_MOUSE, 0)
-	inputDown.writeUInt32LE(MOUSEEVENTF_LEFTDOWN, 16)
-
-	inputUp.writeUInt32LE(INPUT_MOUSE, 0)
-	inputUp.writeUInt32LE(MOUSEEVENTF_LEFTUP, 16)
-
-	SendInput(1, inputDown, 40)
-	SendInput(1, inputUp, 40)
+	SendInput(1, down, 40)
+	SendInput(1, up, 40)
 }
 
 export function scroll(delta: number) {
-	const input = Buffer.alloc(40)
-
-	input.writeUInt32LE(INPUT_MOUSE, 0)
-	input.writeUInt32LE(MOUSEEVENTF_WHEEL, 16)
-	input.writeInt32LE(delta * 120, 20)
+	const scaled = Math.max(-10, Math.min(10, delta)) * 120
+	const input = createMouseInput(MOUSEEVENTF_WHEEL, 0, 0, scaled)
 
 	SendInput(1, input, 40)
 }

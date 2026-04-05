@@ -1,4 +1,11 @@
-import { moveMouse, mouseClick, scroll } from "./ffi/index"
+import {
+	moveMouse,
+	mouseClick,
+	scroll,
+	keyTap,
+	typeText,
+	combo,
+} from "./ffi/index"
 
 export type InputMessage =
 	| { type: "move"; dx: number; dy: number }
@@ -35,20 +42,36 @@ export class InputHandler {
 			case "scroll":
 				this.handleScroll(msg.dy)
 				break
+
+			case "key":
+				keyTap(msg.key)
+				break
+
+			case "text":
+				typeText(msg.text)
+				break
+
+			case "combo":
+				combo(msg.keys)
+				break
+
+			case "copy":
+				combo(["control", "c"])
+				break
+
+			case "paste":
+				combo(["control", "v"])
+				break
 		}
 	}
 
-	// ✅ STABLE + SMOOTH
-	private async handleMove(dx: number, dy: number) {
+	private handleMove(dx: number, dy: number) {
 		const now = Date.now()
 
 		if (now - this.lastMove < this.throttleMs) return
-
-		// ignore tiny noise
 		if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return
 
 		this.lastMove = now
-
 		moveMouse(dx, dy)
 	}
 

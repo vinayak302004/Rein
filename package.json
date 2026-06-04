@@ -79,9 +79,10 @@
 			}
 		],
 		"files": [
-			".output/**/*",
-			"electron/**/*",
-			"package.json"
+		"dist/**/*",
+		".output/**/*",
+		"electron/**/*",
+		"package.json"
 		],
 		"npmRebuild": true,
 		"linux": {
